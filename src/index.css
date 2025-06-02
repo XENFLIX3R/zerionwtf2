@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 270 50% 3%;
+    --foreground: 0 0% 98%;
+    
+    --card: 270 50% 5%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 270 50% 5%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 270 95% 56%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 270 30% 10%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 270 30% 15%;
+    --muted-foreground: 0 0% 70%;
+    
+    --accent: 270 95% 56%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 270 30% 20%;
+    --input: 270 30% 20%;
+    --ring: 270 95% 56%;
+    
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent;
+}
+
+.gradient-bg {
+  @apply bg-gradient-to-r from-zerion-purple-dark to-zerion-purple animate-gradient-x;
+}
+
+.card-glow {
+  @apply relative overflow-hidden;
+}
+
+.card-glow::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-zerion-purple/20 to-zerion-purple-light/20 opacity-0 transition-opacity duration-300;
+}
+
+.card-glow:hover::before {
+  @apply opacity-100;
+}
+
+.feature-card {
+  @apply bg-secondary rounded-xl p-6 transition-all duration-300 hover:shadow-[0_0_15px_rgba(147,51,234,0.3)] card-glow;
+}
+
+.pricing-card {
+  @apply bg-secondary rounded-xl p-6 transition-all duration-300 border border-zerion-purple/20 hover:border-zerion-purple/50 hover:shadow-[0_0_20px_rgba(147,51,234,0.3)];
+}
+
+.pricing-card.popular {
+  @apply border-zerion-purple/50 shadow-[0_0_15px_rgba(147,51,234,0.2)];
+}
+
+.testimonial-card {
+  @apply bg-secondary rounded-xl p-6 transition-all duration-300 hover:shadow-[0_0_15px_rgba(147,51,234,0.3)] card-glow;
+}
+
+.faq-item {
+  @apply border-b border-zerion-purple/20 py-4 transition-all duration-300;
+}
+
+.code-editor {
+  @apply bg-black rounded-lg p-4 font-mono text-sm text-gray-300 overflow-hidden;
+}
+
+.code-editor-header {
+  @apply flex items-center justify-between mb-2 text-gray-500 text-xs;
+}
+
+.code-editor-content {
+  @apply bg-black rounded-md p-2;
+}
+
+.glow-effect {
+  @apply relative;
+}
+
+.glow-effect::after {
+  content: '';
+  @apply absolute -inset-[1px] rounded-[inherit] bg-gradient-to-r from-zerion-purple to-zerion-purple-light opacity-0 blur-sm transition-opacity duration-300;
+  z-index: -1;
+}
+
+.glow-effect:hover::after {
+  @apply opacity-70;
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at 50% 50%, rgba(147, 51, 234, 0.15) 0%, rgba(10, 10, 10, 0) 70%);
+}
+
+.section-gradient {
+  background: radial-gradient(circle at 50% 0%, rgba(147, 51, 234, 0.1) 0%, rgba(10, 10, 10, 0) 70%);
+}
