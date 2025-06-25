@@ -120,3 +120,7 @@
 .section-gradient {
   background: radial-gradient(circle at 50% 0%, rgba(147, 51, 234, 0.1) 0%, rgba(10, 10, 10, 0) 70%);
 }
+
+.section-gradient-alt {
+  background: radial-gradient(circle at 50% 100%, rgba(147, 51, 234, 0.1) 0%, rgba(10, 10, 10, 0) 70%);
+}
