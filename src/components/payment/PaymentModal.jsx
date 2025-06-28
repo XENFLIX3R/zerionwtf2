@@ -281,9 +281,9 @@ const PaymentModal = ({ plan, onClose }) => {
               </div>
               <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
                 <li>Complete your payment on our secure checkout page</li>
-                <li>Save your payment confirmation/receipt</li>
-                <li>Join our Discord and create a ticket</li>
-                <li>Submit your payment proof for verification</li>
+                <li>You will receive a license key after purchase</li>
+                <li>Join our Discord server</li>
+                <li>Use the command <code className="bg-zerion-black-dark px-1 rounded text-zerion-purple">/redeem [your license key]</code> to activate your plan</li>
               </ol>
             </div>
 
