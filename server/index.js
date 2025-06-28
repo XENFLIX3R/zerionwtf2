@@ -443,6 +443,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Root endpoint for testing
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Zerion API Server is running',
+    status: 'OK',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Global error handler
 app.use((error, req, res, next) => {
   console.error('Unhandled error:', error);
@@ -452,8 +461,9 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - This should be the last route
 app.use('*', (req, res) => {
+  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
