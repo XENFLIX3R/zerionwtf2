@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config";
+import PaymentModal from "@/components/payment/PaymentModal";
 
 const Pricing = () => {
+  const [selectedPlan, setSelectedPlan] = useState(null);
+
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -26,6 +29,9 @@ const Pricing = () => {
                         plansToDisplay.length === 3 ? 'md:grid-cols-3' : 
                         'md:grid-cols-2 lg:grid-cols-4';
 
+  const handlePlanSelect = (plan) => {
+    setSelectedPlan(plan);
+  };
 
   return (
     <section id="pricing" className="py-20 section-gradient">
@@ -93,6 +99,7 @@ const Pricing = () => {
               </ul>
               
               <Button
+                onClick={() => handlePlanSelect(plan)}
                 className={`w-full ${
                   plan.popular
                     ? 'bg-zerion-purple hover:bg-zerion-purple-light text-white'
@@ -105,6 +112,13 @@ const Pricing = () => {
           ))}
         </motion.div>
       </div>
+
+      {selectedPlan && (
+        <PaymentModal
+          plan={selectedPlan}
+          onClose={() => setSelectedPlan(null)}
+        />
+      )}
     </section>
   );
 };

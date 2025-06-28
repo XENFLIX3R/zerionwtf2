@@ -9,7 +9,7 @@ import { testimonialsConfig } from './testimonialsConfig';
 import { footerConfig } from './footerConfig';
 
 const discordLink = "https://discord.gg/EqhVZgsd92";
-const newLogoUrl = "https://i.ibb.co/QjKMsSNJ/Zerion-Wtf-Transparent.png";
+const newLogoUrl = "https://i.ibb.co/CpFPYRB5/Screenshot-2025-06-20-015719-Photoroom.png";
 
 export const siteConfig = {
   name: "Zerion.Wtf",

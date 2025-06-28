@@ -19,67 +19,111 @@ export const AuthProvider = ({ children }) => {
     const userData = localStorage.getItem('user');
     
     if (token && userData) {
-      setUser(JSON.parse(userData));
+      try {
+        setUser(JSON.parse(userData));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = async (username, password) => {
+  const makeAuthRequest = async (url, data) => {
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(data),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response. Please try again.');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
+      const responseData = await response.json();
 
-      return { success: true };
+      if (!response.ok) {
+        throw new Error(responseData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return { success: true, data: responseData };
     } catch (error) {
+      console.error('Auth request error:', error);
+      
+      // Handle different types of errors
+      if (error.name === 'SyntaxError') {
+        return { success: false, error: 'Server error. Please try again later.' };
+      }
+      
+      if (error.message.includes('Failed to fetch')) {
+        return { success: false, error: 'Network error. Please check your connection.' };
+      }
+
       return { success: false, error: error.message };
     }
+  };
+
+  const login = async (username, password) => {
+    if (!username || !password) {
+      return { success: false, error: 'Username and password are required' };
+    }
+
+    const result = await makeAuthRequest('/api/login', { username, password });
+    
+    if (result.success) {
+      try {
+        localStorage.setItem('token', result.data.token);
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+        setUser(result.data.user);
+      } catch (error) {
+        console.error('Error storing user data:', error);
+        return { success: false, error: 'Failed to save login data' };
+      }
+    }
+
+    return result;
   };
 
   const register = async (username, password) => {
-    try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
-
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
+    if (!username || !password) {
+      return { success: false, error: 'Username and password are required' };
     }
+
+    if (password.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long' };
+    }
+
+    const result = await makeAuthRequest('/api/register', { username, password });
+    
+    if (result.success) {
+      try {
+        localStorage.setItem('token', result.data.token);
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+        setUser(result.data.user);
+      } catch (error) {
+        console.error('Error storing user data:', error);
+        return { success: false, error: 'Failed to save registration data' };
+      }
+    }
+
+    return result;
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   const value = {

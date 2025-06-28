@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Menu, X, FileQuestion, MonitorPlay, DollarSign, MessageSquare, Zap, LogIn } from "lucide-react";
+import { Menu, X, FileQuestion, MonitorPlay, DollarSign, MessageSquare, Zap, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config";
 import { Link, useNavigate } from "react-router-dom";
@@ -28,6 +28,11 @@ const LandingNavbar = () => {
     { name: "FAQ", href: "#faq", icon: <FileQuestion className="w-4 h-4 mr-2" /> },
     { name: "Discord", href: siteConfig.discordUrl, icon: <MessageSquare className="w-4 h-4 mr-2" />, external: true },
   ];
+
+  // Add Dashboard to nav items if user is authenticated
+  if (user) {
+    navItems.splice(4, 0, { name: "Dashboard", href: "/dashboard", icon: <User className="w-4 h-4 mr-2" /> });
+  }
 
   const handleNavClick = (e, href) => {
     if (href.startsWith("#")) {
@@ -59,7 +64,7 @@ const LandingNavbar = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center" onClick={(e) => handleNavClick(e, "/")}>
-              <img src="https://i.ibb.co/bj2ZXqMq/Screenshot-2025-06-20-015719-Photoroom.png" alt={`${siteConfig.name} Logo`} className="h-10 w-auto" />
+              <img src={siteConfig.logoUrl} alt={`${siteConfig.name} Logo`} className="h-10 w-auto" />
               <span className="ml-2 text-xl font-bold text-white">{siteConfig.name.split('.')[0]}<span className="text-zerion-purple">.{siteConfig.name.split('.')[1]}</span></span>
             </Link>
           </div>
@@ -79,20 +84,13 @@ const LandingNavbar = () => {
               </Link>
             ))}
             
-            {user ? (
-              <Button
-                onClick={() => navigate('/dashboard')}
-                className="ml-4 bg-zerion-purple hover:bg-zerion-purple-light text-white px-4 py-2 rounded-md font-medium transition-all duration-300"
-              >
-                Dashboard
-              </Button>
-            ) : (
+            {!user && (
               <Button
                 onClick={() => navigate('/auth')}
                 className="ml-4 bg-zerion-purple hover:bg-zerion-purple-light text-white px-4 py-2 rounded-md font-medium transition-all duration-300 flex items-center gap-2"
               >
-                <LogIn className="w-4 h-4" />
-                Get Premium
+                <User className="w-4 h-4" />
+                Login
               </Button>
             )}
           </div>
@@ -137,17 +135,7 @@ const LandingNavbar = () => {
               </Link>
             ))}
             
-            {user ? (
-              <Button
-                onClick={() => {
-                  navigate('/dashboard');
-                  setIsOpen(false);
-                }}
-                className="w-full mt-4 bg-zerion-purple hover:bg-zerion-purple-light text-white"
-              >
-                Dashboard
-              </Button>
-            ) : (
+            {!user && (
               <Button
                 onClick={() => {
                   navigate('/auth');
@@ -155,8 +143,8 @@ const LandingNavbar = () => {
                 }}
                 className="w-full mt-4 bg-zerion-purple hover:bg-zerion-purple-light text-white flex items-center justify-center gap-2"
               >
-                <LogIn className="w-4 h-4" />
-                Get Premium
+                <User className="w-4 h-4" />
+                Login
               </Button>
             )}
           </div>
