@@ -185,6 +185,8 @@ export default defineConfig({
 	customLogger: logger,
 	plugins: [react(), addTransformIndexHtml],
 	server: {
+		port: 3000,
+		host: true,
 		cors: true,
 		headers: {
 			'Cross-Origin-Embedder-Policy': 'credentialless',
@@ -194,6 +196,7 @@ export default defineConfig({
 			'/api': {
 				target: 'http://localhost:5000',
 				changeOrigin: true,
+				secure: false,
 			},
 		},
 	},
