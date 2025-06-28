@@ -10,7 +10,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const MONGODB_URI = 'mongodb+srv://EntityAdmin:MEBFFjsYkkpReVld@zerioncluster.nqqft1w.mongodb.net/?retryWrites=true&w=majority&appName=ZerionCluster';
+const MONGODB_URI = 'mongodb+srv://EntityAdmin:MEBFFjsYkkpReVld@zerioncluster.nqqft1w.mongodb.net/zerion?retryWrites=true&w=majority&appName=ZerionCluster';
 
 // Enhanced CORS configuration
 app.use(cors({
@@ -44,21 +44,43 @@ app.use((error, req, res, next) => {
 });
 
 let db;
+let client;
 
-// Connect to MongoDB with enhanced error handling
-MongoClient.connect(MONGODB_URI, {
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  connectTimeoutMS: 10000,
-})
-  .then(client => {
-    console.log('Connected to MongoDB');
+// Connect to MongoDB with enhanced error handling and retry logic
+const connectToDatabase = async () => {
+  try {
+    console.log('Attempting to connect to MongoDB...');
+    client = new MongoClient(MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      maxPoolSize: 10,
+      retryWrites: true,
+      w: 'majority'
+    });
+    
+    await client.connect();
+    
+    // Test the connection
+    await client.db('admin').command({ ping: 1 });
+    
     db = client.db('zerion');
-  })
-  .catch(error => {
+    console.log('Successfully connected to MongoDB database: zerion');
+    
+    // Test database access
+    const collections = await db.listCollections().toArray();
+    console.log('Available collections:', collections.map(c => c.name));
+    
+  } catch (error) {
     console.error('MongoDB connection error:', error);
-    process.exit(1);
-  });
+    console.error('Connection string (sanitized):', MONGODB_URI.replace(/:[^:@]*@/, ':***@'));
+    
+    // Retry connection after 5 seconds
+    setTimeout(connectToDatabase, 5000);
+  }
+};
+
+// Initialize database connection
+connectToDatabase();
 
 // Enhanced middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -108,15 +130,33 @@ const validateInput = (req, res, next) => {
   next();
 };
 
+// Database availability check middleware
+const checkDatabaseConnection = (req, res, next) => {
+  if (!db) {
+    console.error('Database connection not available for request:', req.path);
+    return res.status(503).json({ 
+      error: 'Database connection not available. Please try again in a moment.' 
+    });
+  }
+  next();
+};
+
+// Root endpoint for testing
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Zerion API Server is running',
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    database: db ? 'Connected' : 'Disconnected'
+  });
+});
+
 // Enhanced register endpoint
-app.post('/api/register', validateInput, async (req, res) => {
+app.post('/api/register', validateInput, checkDatabaseConnection, async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Check if database is available
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
+    console.log(`Registration attempt for username: ${username}`);
 
     // Check if user already exists
     const existingUser = await db.collection('users').findOne({ 
@@ -124,6 +164,7 @@ app.post('/api/register', validateInput, async (req, res) => {
     });
     
     if (existingUser) {
+      console.log(`Registration failed: Username ${username} already exists`);
       return res.status(400).json({ error: 'Username already exists' });
     }
 
@@ -144,6 +185,7 @@ app.post('/api/register', validateInput, async (req, res) => {
     };
 
     const result = await db.collection('users').insertOne(user);
+    console.log(`User created successfully with ID: ${result.insertedId}`);
     
     // Generate JWT token
     const token = jwt.sign(
@@ -173,14 +215,11 @@ app.post('/api/register', validateInput, async (req, res) => {
 });
 
 // Enhanced login endpoint
-app.post('/api/login', validateInput, async (req, res) => {
+app.post('/api/login', validateInput, checkDatabaseConnection, async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Check if database is available
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
+    console.log(`Login attempt for username: ${username}`);
 
     // Find user (case-insensitive)
     const user = await db.collection('users').findOne({ 
@@ -188,17 +227,20 @@ app.post('/api/login', validateInput, async (req, res) => {
     });
     
     if (!user) {
+      console.log(`Login failed: User ${username} not found`);
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
     // Check if user is active
     if (user.isActive === false) {
+      console.log(`Login failed: User ${username} account deactivated`);
       return res.status(403).json({ error: 'Account has been deactivated' });
     }
 
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
+      console.log(`Login failed: Invalid password for user ${username}`);
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
@@ -227,6 +269,8 @@ app.post('/api/login', validateInput, async (req, res) => {
     // Remove password from response
     const { password: _, ...userResponse } = user;
 
+    console.log(`Login successful for user: ${username}`);
+
     res.json({
       message: 'Login successful',
       token,
@@ -240,12 +284,8 @@ app.post('/api/login', validateInput, async (req, res) => {
 });
 
 // Enhanced get user profile
-app.get('/api/profile', authenticateToken, async (req, res) => {
+app.get('/api/profile', authenticateToken, checkDatabaseConnection, async (req, res) => {
   try {
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
-
     const user = await db.collection('users').findOne(
       { _id: new ObjectId(req.user.userId) },
       { projection: { password: 0 } }
@@ -263,13 +303,9 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
 });
 
 // Enhanced update user profile
-app.put('/api/profile', authenticateToken, async (req, res) => {
+app.put('/api/profile', authenticateToken, checkDatabaseConnection, async (req, res) => {
   try {
     const { robloxUsername } = req.body;
-
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
 
     // Validate robloxUsername if provided
     if (robloxUsername && typeof robloxUsername !== 'string') {
@@ -297,12 +333,8 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
 });
 
 // Enhanced get user scripts
-app.get('/api/scripts', authenticateToken, async (req, res) => {
+app.get('/api/scripts', authenticateToken, checkDatabaseConnection, async (req, res) => {
   try {
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
-
     const scripts = await db.collection('scripts')
       .find({ userId: new ObjectId(req.user.userId) })
       .sort({ updatedAt: -1 })
@@ -316,13 +348,9 @@ app.get('/api/scripts', authenticateToken, async (req, res) => {
 });
 
 // Enhanced save script
-app.post('/api/scripts', authenticateToken, async (req, res) => {
+app.post('/api/scripts', authenticateToken, checkDatabaseConnection, async (req, res) => {
   try {
     const { name, content, description } = req.body;
-
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
 
     // Validate input
     if (!name || typeof name !== 'string') {
@@ -355,14 +383,10 @@ app.post('/api/scripts', authenticateToken, async (req, res) => {
 });
 
 // Enhanced update script
-app.put('/api/scripts/:id', authenticateToken, async (req, res) => {
+app.put('/api/scripts/:id', authenticateToken, checkDatabaseConnection, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, content, description } = req.body;
-
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
 
     // Validate ObjectId
     if (!ObjectId.isValid(id)) {
@@ -405,13 +429,9 @@ app.put('/api/scripts/:id', authenticateToken, async (req, res) => {
 });
 
 // Enhanced delete script
-app.delete('/api/scripts/:id', authenticateToken, async (req, res) => {
+app.delete('/api/scripts/:id', authenticateToken, checkDatabaseConnection, async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
 
     // Validate ObjectId
     if (!ObjectId.isValid(id)) {
@@ -439,16 +459,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    database: db ? 'Connected' : 'Disconnected'
-  });
-});
-
-// Root endpoint for testing
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Zerion API Server is running',
-    status: 'OK',
-    timestamp: new Date().toISOString()
+    database: db ? 'Connected' : 'Disconnected',
+    mongodb_uri: MONGODB_URI.replace(/:[^:@]*@/, ':***@')
   });
 });
 
@@ -467,7 +479,18 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  if (client) {
+    await client.close();
+    console.log('MongoDB connection closed');
+  }
+  process.exit(0);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`MongoDB URI: ${MONGODB_URI.replace(/:[^:@]*@/, ':***@')}`);
 });
