@@ -3,6 +3,8 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite\"",
     "server": "node server/index.js",
